@@ -1,0 +1,7 @@
+# Server settings for the full app. Mounted over the image's /app/config.yaml,
+# so the server repo stays unchanged. Missing keys keep the server's defaults.
+address: ":5050"          # the client connects to 5050 by default
+max_attempts: 6           # the GUI draws the hangman as 6 - attempts_left
+idle_timeout: 5m
+session_time_to_live: 5m
+words_path: words.json    # the word list shipped in the server image

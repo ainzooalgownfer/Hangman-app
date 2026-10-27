@@ -1,0 +1,6 @@
+# TLS private key: never commit it
+*.key
+# Saved games of the Python client
+client/sessions/
+__pycache__/
+.DS_Store

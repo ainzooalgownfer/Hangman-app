@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build server and client images
+        run: docker compose --profile client build
+
+      - name: Start the server
+        run: |
+          docker compose up -d server
+          sleep 2
+
+      - name: Play a game with the real client
+        run: |
+          printf 'CI\ne\na\nquit\n' | python3 client/client.py 127.0.0.1 5050 | tee out.txt
+          grep -q "Partie abandonnée" out.txt
+
+      - name: Server logs
+        if: always()
+        run: docker compose logs server
