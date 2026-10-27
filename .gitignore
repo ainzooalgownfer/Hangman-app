@@ -4,3 +4,4 @@
 client/sessions/
 __pycache__/
 .DS_Store
+.run/

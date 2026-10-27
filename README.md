@@ -17,7 +17,16 @@ git clone --recursive <this repo>
 
 Without `--recursive`, `server/` and `client/` are empty. Fix with `git submodule update --init`.
 
-## Run
+## Play
+
+```bash
+./play.sh          # graphical client (needs tkinter)
+./play.sh cli      # terminal client
+```
+
+Starts the server if it isn't running (Docker, or Go if Docker is off), then the client. The server stops when the client closes, unless it was already running. In the GUI, uncheck "Connexion chiffrée (TLS)".
+
+## Run by hand
 
 ```bash
 docker compose up -d                  # server on port 5050
