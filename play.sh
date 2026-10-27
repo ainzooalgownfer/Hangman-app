@@ -4,6 +4,8 @@
 #   ./play.sh        graphical client (tkinter)
 #   ./play.sh cli    terminal client
 #
+# In GUI mode the server logs are shown in this terminal.
+#
 # The server runs with Docker, or is built with Go if Docker isn't running.
 # It is stopped when the client closes, unless it was already running before.
 
@@ -15,6 +17,7 @@ HOST=127.0.0.1
 PORT=5050
 RUN_DIR=.run
 started=""
+SINCE=$(date -u +%Y-%m-%dT%H:%M:%SZ) # only show logs from this run
 
 port_open() {
 	(exec 3<>"/dev/tcp/$HOST/$PORT") 2>/dev/null
@@ -54,6 +57,34 @@ stop_server() {
 	[ -n "$started" ] && echo "Server stopped."
 }
 
+# follow_logs streams the server's logs in the background (sets $logs_pid).
+follow_logs() {
+	if docker compose ps -q server 2>/dev/null | grep -q .; then
+		docker compose logs -f --no-log-prefix --since "$SINCE" server &
+	elif [ -f "$RUN_DIR/server.log" ]; then
+		tail -n +1 -f "$RUN_DIR/server.log" &
+	else
+		return
+	fi
+	logs_pid=$!
+}
+
+# logs_hint prints how to watch the logs from another terminal.
+logs_hint() {
+	if docker compose ps -q server 2>/dev/null | grep -q .; then
+		echo "Server logs, in another terminal: docker compose logs -f server"
+	elif [ -f "$RUN_DIR/server.log" ]; then
+		echo "Server logs, in another terminal: tail -f $RUN_DIR/server.log"
+	fi
+}
+
+cleanup() {
+	[ -n "$logs_pid" ] && kill "$logs_pid" 2>/dev/null
+	stop_server
+}
+logs_pid=""
+trap cleanup EXIT
+
 if [ ! -f server/go.mod ] || [ ! -f client/client.py ]; then
 	echo "Fetching the submodules..."
 	git submodule update --init
@@ -63,7 +94,6 @@ if port_open; then
 	echo "Server already running on port $PORT."
 else
 	start_server
-	trap stop_server EXIT
 	echo "Server ready on port $PORT."
 fi
 
@@ -74,9 +104,12 @@ gui)
 		exit 1
 	fi
 	echo "Opening the game. Uncheck \"Connexion chiffrée (TLS)\": the server doesn't use TLS yet."
+	echo "Server logs:"
+	follow_logs
 	python3 client/gui.py
 	;;
 cli)
+	logs_hint
 	python3 client/client.py "$HOST" "$PORT"
 	;;
 *)
