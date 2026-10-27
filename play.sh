@@ -23,7 +23,7 @@ port_open() {
 start_server() {
 	if docker info >/dev/null 2>&1; then
 		echo "Starting the server with Docker..."
-		docker compose up -d --build server >/dev/null
+		docker compose --progress quiet up -d --build server
 		started=docker
 	elif command -v go >/dev/null; then
 		echo "Docker isn't running: building the server with Go..."
@@ -48,7 +48,7 @@ start_server() {
 stop_server() {
 	case "$started" in
 	"") ;;
-	docker) docker compose stop server >/dev/null ;;
+	docker) docker compose --progress quiet stop server ;;
 	*) kill "$started" 2>/dev/null || true ;;
 	esac
 	[ -n "$started" ] && echo "Server stopped."
