@@ -4,7 +4,7 @@
 #   ./play.sh        graphical client (tkinter)
 #   ./play.sh cli    terminal client
 #
-# In GUI mode the server logs are shown in this terminal.
+# The server logs are shown in this terminal too.
 #
 # The server runs with Docker, or is built with Go if Docker isn't running.
 # It is stopped when the client closes, unless it was already running before.
@@ -54,32 +54,29 @@ stop_server() {
 	docker) docker compose --progress quiet stop server ;;
 	*) kill "$started" 2>/dev/null || true ;;
 	esac
-	[ -n "$started" ] && echo "Server stopped."
+	if [ -n "$started" ]; then echo "Server stopped."; fi
+}
+
+# logs_cmd prints the command that follows the server's logs from this run.
+logs_cmd() {
+	if docker compose ps -q server 2>/dev/null | grep -q .; then
+		echo "docker compose logs -f --no-log-prefix --since $SINCE server"
+	elif [ -f "$RUN_DIR/server.log" ]; then
+		echo "tail -n +1 -f $RUN_DIR/server.log"
+	fi
 }
 
 # follow_logs streams the server's logs in the background (sets $logs_pid).
 follow_logs() {
-	if docker compose ps -q server 2>/dev/null | grep -q .; then
-		docker compose logs -f --no-log-prefix --since "$SINCE" server &
-	elif [ -f "$RUN_DIR/server.log" ]; then
-		tail -n +1 -f "$RUN_DIR/server.log" &
-	else
-		return
-	fi
+	local cmd
+	cmd=$(logs_cmd)
+	[ -n "$cmd" ] || return 0
+	$cmd &
 	logs_pid=$!
 }
 
-# logs_hint prints how to watch the logs from another terminal.
-logs_hint() {
-	if docker compose ps -q server 2>/dev/null | grep -q .; then
-		echo "Server logs, in another terminal: docker compose logs -f server"
-	elif [ -f "$RUN_DIR/server.log" ]; then
-		echo "Server logs, in another terminal: tail -f $RUN_DIR/server.log"
-	fi
-}
-
 cleanup() {
-	[ -n "$logs_pid" ] && kill "$logs_pid" 2>/dev/null
+	if [ -n "$logs_pid" ]; then kill "$logs_pid" 2>/dev/null || true; fi
 	stop_server
 }
 logs_pid=""
@@ -109,7 +106,8 @@ gui)
 	python3 client/gui.py
 	;;
 cli)
-	logs_hint
+	echo "Server logs:"
+	follow_logs
 	python3 client/client.py "$HOST" "$PORT"
 	;;
 *)

@@ -36,6 +36,8 @@ Without `--recursive`, `server/` and `client/` are empty: run `git submodule upd
 
 The script starts the server if it isn't running (Docker, or Go if Docker is off), then opens the client. The server stops when the client closes, unless it was already running.
 
+The server logs are shown in the same terminal.
+
 In the GUI, uncheck "Connexion chiffrée (TLS)": the server doesn't use TLS yet.
 
 ## Run by hand
