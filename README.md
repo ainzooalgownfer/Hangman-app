@@ -32,17 +32,19 @@ Without `--recursive`, `server/` and `client/` are empty: run `git submodule upd
 ```bash
 ./play.sh          # GUI
 ./play.sh cli      # terminal client
+./play.sh certs    # only create the TLS certificate
 ```
 
 The script starts the server if it isn't running (Docker, or Go if Docker is off), then opens the client. The server stops when the client closes, unless it was already running.
 
 The server logs are shown in the same terminal.
 
-In the GUI, uncheck "Connexion chiffrée (TLS)": the server doesn't use TLS yet.
+The connection uses TLS. The first run creates a self-signed certificate in `certs/` (gitignored) and copies `server.crt` next to the client, which uses it to check the server. Keep "Connexion chiffrée (TLS)" checked in the GUI.
 
 ## Run by hand
 
 ```bash
+./play.sh certs                      # once: certificate in certs/
 docker compose up -d                 # server on port 5050
 docker compose run --rm client       # terminal client
 python3 client/gui.py                # GUI, outside Docker

@@ -5,6 +5,7 @@ services:
       - "5050:5050"
     volumes:
       - ./server-config/config.yaml:/app/config.yaml:ro
+      - ./certs:/app/certs:ro # made by ./play.sh certs
     restart: unless-stopped
 
   client:
@@ -13,6 +14,9 @@ services:
       dockerfile: ../docker/client.Dockerfile
     depends_on:
       - server
+    volumes:
+      - ./certs/server.crt:/app/server.crt:ro
+    command: ["server", "5050", "--tls"]
     stdin_open: true
     tty: true
     profiles: ["client"]

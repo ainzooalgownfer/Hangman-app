@@ -3,6 +3,7 @@
 #
 #   ./play.sh        graphical client (tkinter)
 #   ./play.sh cli    terminal client
+#   ./play.sh certs  only create the TLS certificate (certs/), if it's missing
 #
 # The server logs are shown in this terminal too.
 #
@@ -19,6 +20,23 @@ RUN_DIR=.run
 started=""
 SINCE=$(date -u +%Y-%m-%dT%H:%M:%SZ) # only show logs from this run
 
+# make_certs creates a self-signed certificate the first time, valid for the
+# names the clients use: localhost, 127.0.0.1, ::1, and "server" (the client
+# container). The client checks the server against client/server.crt
+# (gitignored in the client repo).
+make_certs() {
+	if [ ! -f certs/server.crt ] || [ ! -f certs/server.key ]; then
+		echo "Creating the TLS certificate in certs/..."
+		mkdir -p certs
+		openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
+			-keyout certs/server.key -out certs/server.crt -subj "/CN=localhost" \
+			-addext "subjectAltName=DNS:localhost,DNS:server,IP:127.0.0.1,IP:::1" 2>/dev/null
+		# The server container runs as user 65534, which must be able to read the key.
+		chmod 644 certs/server.key
+	fi
+	cp certs/server.crt client/server.crt
+}
+
 port_open() {
 	(exec 3<>"/dev/tcp/$HOST/$PORT") 2>/dev/null
 }
@@ -33,6 +51,7 @@ start_server() {
 		mkdir -p "$RUN_DIR"
 		(cd server && go build -o "../$RUN_DIR/hangman" ./cmd/server)
 		cp server-config/config.yaml server/words.json "$RUN_DIR/"
+		cp -r certs "$RUN_DIR/"
 		(cd "$RUN_DIR" && exec ./hangman >server.log 2>&1) &
 		started=$!
 	else
@@ -87,6 +106,11 @@ if [ ! -f server/go.mod ] || [ ! -f client/client.py ]; then
 	git submodule update --init
 fi
 
+make_certs
+if [ "$MODE" = certs ]; then
+	exit 0
+fi
+
 if port_open; then
 	echo "Server already running on port $PORT."
 else
@@ -100,7 +124,7 @@ gui)
 		echo "tkinter is missing. Debian/Ubuntu: sudo apt install python3-tk  ·  Mac: brew install python-tk" >&2
 		exit 1
 	fi
-	echo "Opening the game. Uncheck \"Connexion chiffrée (TLS)\": the server doesn't use TLS yet."
+	echo "Opening the game. Keep \"Connexion chiffrée (TLS)\" checked."
 	echo "Server logs:"
 	follow_logs
 	python3 client/gui.py
@@ -108,10 +132,10 @@ gui)
 cli)
 	echo "Server logs:"
 	follow_logs
-	python3 client/client.py "$HOST" "$PORT"
+	python3 client/client.py "$HOST" "$PORT" --tls
 	;;
 *)
-	echo "Usage: ./play.sh [gui|cli]" >&2
+	echo "Usage: ./play.sh [gui|cli|certs]" >&2
 	exit 1
 	;;
 esac

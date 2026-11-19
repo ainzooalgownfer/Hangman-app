@@ -5,3 +5,5 @@ max_attempts: 6           # the GUI draws the hangman as 6 - attempts_left
 idle_timeout: 5m
 session_time_to_live: 5m
 words_path: words.json    # the word list shipped in the server image
+tls_cert: certs/server.crt  # made by ./play.sh certs, mounted by compose.yaml
+tls_key: certs/server.key

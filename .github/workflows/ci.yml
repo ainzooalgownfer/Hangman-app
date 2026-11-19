@@ -13,6 +13,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Create the TLS certificate
+        run: ./play.sh certs
+
       - name: Build server and client images
         run: docker compose --profile client build
 
@@ -23,7 +26,7 @@ jobs:
 
       - name: Play a game with the real client
         run: |
-          printf 'CI\ne\na\nquit\n' | python3 client/client.py 127.0.0.1 5050 | tee out.txt
+          printf 'CI\ne\na\nquit\n' | python3 client/client.py 127.0.0.1 5050 --tls | tee out.txt
           grep -q "Partie abandonnée" out.txt
 
       - name: Server logs

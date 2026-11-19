@@ -1,4 +1,5 @@
-# TLS private key: never commit it
+# TLS certificate and key, generated per machine by ./play.sh: never commit them
+certs/
 *.key
 # Saved games of the Python client
 client/sessions/
